@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Smart Parking System</title>
+    <script src="https://cdn.jsdelivr.net/npm/luxon@2.0.2/build/global/luxon.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            background: #f0f2f5;
+            color: #1a1a1a;
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            margin: 20px 0;
+            font-size: 2.5em;
+            font-weight: 600;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .status-counts {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .status-count {
+            padding: 15px 30px;
+            border-radius: 12px;
+            color: white;
+            font-weight: 500;
+            text-align: center;
+            min-width: 150px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .status-count:hover {
+            transform: translateY(-2px);
+        }
+
+        .vacant-count { 
+            background: linear-gradient(135deg, #4CAF50, #45a049);
+        }
+
+        .occupied-count { 
+            background: linear-gradient(135deg, #f44336, #e53935);
+        }
+
+        .booking-form {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            max-width: 600px;
+            margin: 0 auto 30px;
+        }
+
+        .booking-form h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .booking-form form {
+            display: grid;
+            gap: 15px;
+        }
+
+        .booking-form select,
+        .booking-form input {
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        .booking-form select:focus,
+        .booking-form input:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+
+        .booking-form button {
+            background: #3498db;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .booking-form button:hover {
+            background: #2980b9;
+        }
+
+        .layout-btn {
+            background: #e67e22;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s ease;
+        }
+
+        .layout-btn:hover {
+            background: #d35400;
+        }
+
+        .parking-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .parking-spot {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .parking-spot:hover {
+            transform: translateY(-2px);
+        }
+
+        .parking-spot h3 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .parking-spot p {
+            margin: 5px 0;
+            color: #34495e;
+            font-size: 14px;
+        }
+
+        .parking-spot.vacant {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .parking-spot.occupied_valid,
+        .parking-spot.occupied_reserved {
+            border-left: 4px solid #f1c40f;
+        }
+
+        .parking-spot.violation_wrong_plate {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .parking-spot.reserved {
+            border-left: 4px solid #3498db;
+        }
+
+        .violations-list {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .violations-list h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+
+        .violations-list p {
+            margin: 5px 0;
+            color: #34495e;
+            font-size: 14px;
+        }
+
+        .violation-item {
+            background: #fff3f3;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #e74c3c;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .violation-text {
+            color: #c0392b;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .violation-time {
+            color: #7f8c8d;
+            font-size: 0.9em;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateX(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        #priceModal .modal-content {
+            background-color: #fff;
+            margin: 15% auto;
+            padding: 25px;
+            border: none;
+            border-radius: 15px;
+            width: 300px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            position: relative;
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        #priceModal h2 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        #priceDetails {
+            margin: 15px 0;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 12px;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        #priceDetails p {
+            margin: 10px 0;
+            color: #34495e;
+            font-size: 0.95em;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #priceDetails p strong {
+            color: #2c3e50;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        #priceDetails hr {
+            border: none;
+            height: 2px;
+            background: linear-gradient(to right, transparent, #3498db, transparent);
+            margin: 15px 0;
+        }
+
+        #priceModal .close {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            color: #7f8c8d;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: color 0.2s;
+            line-height: 1;
+        }
+
+        #priceModal .close:hover {
+            color: #34495e;
+        }
+
+        #priceModal button {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 1em;
+            font-weight: 500;
+            transition: transform 0.2s;
+            margin-top: 15px;
+        }
+
+        #priceModal button:hover {
+            transform: translateY(-2px);
+        }
+
+        #totalPrice {
+            color: #27ae60;
+            font-weight: 600;
+            font-size: 1.3em;
+        }
+
+        #parkingDuration {
+            color: #e67e22;
+            font-weight: 500;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+        }
+
+        #layoutModal .modal-content {
+            background-color: #fff;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 25px;
+            border: none;
+            border-radius: 15px;
+            width: 600px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translate(-50%, -60%);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        #layoutModal h2 {
+            color: #2c3e50;
+            font-size: 1.5em;
+            margin: 0 0 15px 0;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #3498db;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .parking-layout {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            height: 400px;
+        }
+
+        .parking-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .parking-spots {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            height: 100%;
+            width: 40%;
+        }
+
+        .spot {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-radius: 8px;
+            margin: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            font-weight: 500;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s ease;
+        }
+
+        .spot:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+        }
+
+        .road {
+            width: 60px;
+            height: 100%;
+            background: #444;
+            position: relative;
+            border-radius: 4px;
+        }
+
+        .road-marking {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 4px;
+            height: 100%;
+            background: linear-gradient(to bottom, 
+                white 0%, white 50%, 
+                transparent 50%, transparent 100%);
+            background-size: 20px 20px;
+        }
+
+        @media (max-width: 768px) {
+            .status-counts {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .status-count {
+                width: 100%;
+                max-width: 300px;
+            }
+
+            .parking-grid {
+                grid-template-columns: 1fr;
+            }
+
+            #priceModal .modal-content {
+                width: 90%;
+                margin: 20% auto;
+            }
+
+            #layoutModal .modal-content {
+                width: 90%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Smart Parking System</h1>
+        
+        <div class="status-counts">
+            <div class="status-count vacant-count">
+                <span id="vacant-count">0</span>
+                <div>Vacant Spots</div>
+            </div>
+            <div class="status-count occupied-count">
+                <span id="occupied-count">0</span>
+                <div>Occupied Spots</div>
+            </div>
+        </div>
+
+        <div class="booking-form">
+            <h2>Make a Reservation</h2>
+            <form id="booking-form">
+                <select id="location-select" required>
+                    <option value="">Select Location</option>
+                    <option value="college">College</option>
+                </select>
+                <button type="button" class="layout-btn" onclick="showLayout()">View Parking Layout</button>
+                <select id="spot-select" required>
+                    <option value="">Select Parking Spot</option>
+                </select>
+                <input type="text" id="license-plate" placeholder="License Plate" required>
+                <input type="datetime-local" id="start-time" required>
+                <input type="datetime-local" id="end-time" required>
+                <button type="button" onclick="calculatePrice()">Calculate Price</button>
+                <button type="submit">Book Spot</button>
+            </form>
+        </div>
+
+        <div class="parking-grid" id="parking-grid"></div>
+        
+        <div class="violations-list" id="violations-list">
+            <h2>Parking Violations</h2>
+            <div id="violations-content"></div>
+        </div>
+
+        <!-- Price Calculation Modal -->
+        <div id="priceModal" class="modal">
+            <div class="modal-content">
+                <span class="close" onclick="closePriceModal()">&times;</span>
+                <h2>Price Details</h2>
+                <div id="priceDetails">
+                    <p>Duration: <span id="parkingDuration">0.0 hours</span></p>
+                    <p>Rate: <span>₹50/hour</span></p>
+                    <p>Min. Charge: <span>₹20</span></p>
+                    <hr>
+                    <p><strong>Total: ₹<span id="totalPrice">0.00</span></strong></p>
+                </div>
+                <button onclick="closePriceModal()">Close</button>
+            </div>
+        </div>
+
+        <!-- Layout Modal -->
+        <div id="layoutModal" class="modal">
+            <div class="modal-content layout-content">
+                <span class="close" onclick="closeLayoutModal()">&times;</span>
+                <h2>Parking Layout</h2>
+                <div class="parking-layout">
+                    <div class="parking-row">
+                        <div class="parking-spots left">
+                            <div class="spot">Spot 1</div>
+                            <div class="spot">Spot 2</div>
+                        </div>
+                        <div class="road">
+                            <div class="road-marking"></div>
+                        </div>
+                        <div class="parking-spots right">
+                            <div class="spot">Spot 3</div>
+                            <div class="spot">Spot 4</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const DateTime = luxon.DateTime;
+
+        function updateParkingStatus() {
+            fetch('/parking_status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('vacant-count').textContent = data.vacant_count;
+                    document.getElementById('occupied-count').textContent = data.occupied_count;
+                    
+                    const parkingGrid = document.getElementById('parking-grid');
+                    parkingGrid.innerHTML = '';
+                    
+                    const spotSelect = document.getElementById('spot-select');
+                    const currentSelection = spotSelect.value;
+                    
+                    spotSelect.innerHTML = '<option value="">Select Parking Spot</option>';
+                    
+                    data.spots.forEach(spot => {
+                        const spotElement = document.createElement('div');
+                        spotElement.className = `parking-spot ${spot.status.toLowerCase()}`;
+                        if (spot.reserved_for) spotElement.className += ' reserved';
+                        
+                        let statusText = spot.status.replace(/_/g, ' ');
+                        if (spot.reserved_for) {
+                            statusText += ` (Reserved for ${spot.reserved_for})`;
+                        }
+                        
+                        spotElement.innerHTML = `
+                            <h3>Spot ${spot.id}</h3>
+                            <p><strong>Status:</strong> ${statusText}</p>
+                            ${spot.license_plate ? `<p><strong>License:</strong> ${spot.license_plate}</p>` : ''}
+                            ${spot.current_charge ? `<p><strong>Current Charge:</strong> ₹${spot.current_charge}</p>` : ''}
+                            ${spot.parking_duration ? `<p><strong>Duration:</strong> ${spot.parking_duration}</p>` : ''}
+                        `;
+                        parkingGrid.appendChild(spotElement);
+                        
+                        // Update condition to match backend status "Vacant"
+                        if (spot.status === 'Vacant') {
+                            const option = document.createElement('option');
+                            option.value = spot.id;
+                            option.textContent = `Spot ${spot.id}`;
+                            spotSelect.appendChild(option);
+                        }
+                    });
+
+                    spotSelect.value = currentSelection || "";
+
+                    const violationsContent = document.getElementById('violations-content');
+                    violationsContent.innerHTML = '';
+                    if (data.violations && data.violations.length > 0) {
+                        data.violations.forEach(violation => {
+                            const violationElement = document.createElement('div');
+                            violationElement.className = 'violation-item';
+                            
+                            let violationText = '';
+                            if (violation.message) {
+                                // Use the custom message if available
+                                violationText = violation.message;
+                            } else if (violation.expected_spot) {
+                                // Wrong spot parking violation
+                                violationText = `Vehicle with plate ${violation.detected_plate} parked in Spot ${violation.spot_id} but should be in ${violation.expected_spot}`;
+                            } else {
+                                // Wrong plate violation
+                                violationText = `Expected plate ${violation.expected_plate} but found ${violation.detected_plate || 'no plate'} in Spot ${violation.spot_id}`;
+                            }
+                            
+                            violationElement.innerHTML = `
+                                <p class="violation-text">⚠️ ${violationText}</p>
+                                <p class="violation-time">Time: ${violation.timestamp}</p>
+                            `;
+                            violationsContent.appendChild(violationElement);
+                        });
+                    } else {
+                        violationsContent.innerHTML = '<p>No violations detected</p>';
+                    }
+                })
+                .catch(error => console.error('Error fetching parking status:', error));
+        }
+
+        document.getElementById('booking-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const bookingData = {
+                spot_id: document.getElementById('spot-select').value,
+                location: document.getElementById('location-select').value,
+                license_plate: document.getElementById('license-plate').value,
+                start_time: document.getElementById('start-time').value,
+                end_time: document.getElementById('end-time').value
+            };
+            
+            fetch('/book_spot', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(bookingData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert('Booking failed: ' + data.error);
+                } else {
+                    alert('Booking successful!');
+                    this.reset();
+                    updateParkingStatus();
+                }
+            })
+            .catch(error => {
+                console.error('Error making booking:', error);
+                alert('Failed to make booking. Please try again.');
+            });
+        });
+
+        const now = DateTime.now();
+        document.getElementById('start-time').min = now.toFormat("yyyy-MM-dd'T'HH:mm");
+        document.getElementById('end-time').min = now.toFormat("yyyy-MM-dd'T'HH:mm");
+
+        function calculatePrice() {
+            const startTime = new Date(document.getElementById('start-time').value);
+            const endTime = new Date(document.getElementById('end-time').value);
+            
+            if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+                alert('Please select valid arrival and departure times');
+                return;
+            }
+            
+            if (endTime <= startTime) {
+                alert('Departure time must be after arrival time');
+                return;
+            }
+            
+            const duration = (endTime - startTime) / (1000 * 60 * 60);
+            const ratePerHour = 50;
+            const minimumCharge = 20;
+            
+            const price = Math.max(minimumCharge, duration * ratePerHour);
+            
+            document.getElementById('parkingDuration').textContent = `${duration.toFixed(1)} hours`;
+            document.getElementById('totalPrice').textContent = price.toFixed(2);
+            
+            document.getElementById('priceModal').style.display = 'block';
+        }
+
+        function closePriceModal() {
+            document.getElementById('priceModal').style.display = 'none';
+        }
+
+        function showLayout() {
+            document.getElementById('layoutModal').style.display = 'block';
+        }
+
+        function closeLayoutModal() {
+            document.getElementById('layoutModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            const priceModal = document.getElementById('priceModal');
+            const layoutModal = document.getElementById('layoutModal');
+            if (event.target == priceModal) {
+                priceModal.style.display = 'none';
+            }
+            if (event.target == layoutModal) {
+                layoutModal.style.display = 'none';
+            }
+        }
+
+        updateParkingStatus();
+        setInterval(updateParkingStatus, 1000);
+    </script>
+</body>
+</html>
